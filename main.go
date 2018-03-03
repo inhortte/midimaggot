@@ -1,16 +1,20 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/rakyll/portmidi"
+	"os"
+	"regexp"
+	"strconv"
 	"time"
 )
 
 type Control byte
 
-const empressPhaserChannel = 7
-const brothersChannel = 8
-const gravitasChannel = 8
+const empressPhaserChannel int64 = 7
+const brothersChannel int64 = 8
+const gravitasChannel int64 = 8
 const (
 	TimingClock   Control = 0xf8
 	ControlChange Control = 0xb0
@@ -34,17 +38,17 @@ func devices() (map[string]portmidi.DeviceID, map[string]portmidi.DeviceID) {
 	fmt.Println("Outputs: ", outputs)
 	return inputs, outputs
 }
-func getpisoundInStream() *Stream {
+func getpisoundInStream() *portmidi.Stream {
 	inputs, _ := devices()
 	inputId := inputs["pisound MIDI PS-225TT43"]
 	fmt.Println("inputID: ", inputId)
-	inp, err := portmidi.NewInputStream(inputId, 1024, 0)
+	inp, err := portmidi.NewInputStream(inputId, 1024)
 	if err != nil {
 		fmt.Println("Cannot initialize input stream: ", err)
 	}
 	return inp
 }
-func getpisoundOutStream() *Stream {
+func getpisoundOutStream() *portmidi.Stream {
 	_, outputs := devices()
 	outputId := outputs["pisound MIDI PS-225TT43"]
 	fmt.Println("outputID: ", outputId)
@@ -73,12 +77,12 @@ func sendMidiClock(bpm int) {
 func empressPhaserIgnoreClock(args ...int) {
 	channel := empressPhaserChannel
 	if len(args) > 0 {
-		channel := int(args[0])
+		channel = int64(args[0])
 	}
 	out := getpisoundOutStream()
-	controlChange := 0xb0 & (channel - 1)
-	controlNumber := 51
-	controlValue := 0
+	controlChange := int64(0xb0 & (channel - 1))
+	controlNumber := int64(51)
+	controlValue := int64(0)
 	out.WriteShort(controlChange, controlNumber, controlValue)
 	out.Close()
 }
@@ -86,22 +90,51 @@ func empressPhaserIgnoreClock(args ...int) {
 func empressPhaserListenClock(args ...int) {
 	channel := empressPhaserChannel
 	if len(args) > 0 {
-		channel := int(args[0])
+		channel = int64(args[0])
 	}
 	out := getpisoundOutStream()
-	controlChange := 0xb0 & (channel - 1)
-	controlNumber := 51
-	controlValue := 127
+	defer out.Close()
+	controlChange := int64(0xb0 & (channel - 1))
+	controlNumber := int64(51)
+	controlValue := int64(127)
 	out.WriteShort(controlChange, controlNumber, controlValue)
-	out.Close()
+}
+
+func programChangeForward() {
+	in := getpisoundInStream()
+	defer in.Close()
+	ch := in.Listen()
+	for {
+		event := <-ch
+		fmt.Println("received -> ", event)
+	}
+}
+
+func commandLoop(done chan bool) {
+	sin := bufio.NewReader(os.Stdin)
+	for {
+		fmt.Print("~> ")
+		inp, _ := sin.ReadString('\n')
+		cmdDone, _ := regexp.Compile(`^exit\s*$`)
+		cmdBpm, _ := regexp.Compile(`^bpm\s+(\d+)\s*$`)
+		if cmdDone.Match([]byte(inp)) {
+			done <- true
+		}
+		bpmMatch := cmdBpm.FindStringSubmatch(inp)
+		if bpmMatch != nil {
+			bpm, _ := strconv.Atoi(bpmMatch[1])
+			go sendMidiClock(bpm)
+		}
+	}
 }
 
 func main() {
+	mainDone := make(chan bool, 1)
+
 	portmidi.Initialize()
-	go func() {
-		fmt.Println("sleeping...")
-		time.Sleep(5 * time.Second)
-		fmt.Println("slept...")
-	}()
-	sendMidiClock(90)
+	defer portmidi.Terminate()
+	go programChangeForward()
+	// sendMidiClock(90)
+	go commandLoop(mainDone)
+	<-mainDone
 }
