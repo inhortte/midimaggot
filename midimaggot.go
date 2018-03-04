@@ -1,12 +1,8 @@
-package main
+package midimaggot
 
 import (
-	"bufio"
 	"fmt"
 	"github.com/rakyll/portmidi"
-	"os"
-	"regexp"
-	"strconv"
 	"time"
 )
 
@@ -108,33 +104,4 @@ func programChangeForward() {
 		event := <-ch
 		fmt.Println("received -> ", event)
 	}
-}
-
-func commandLoop(done chan bool) {
-	sin := bufio.NewReader(os.Stdin)
-	for {
-		fmt.Print("~> ")
-		inp, _ := sin.ReadString('\n')
-		cmdDone, _ := regexp.Compile(`^exit\s*$`)
-		cmdBpm, _ := regexp.Compile(`^bpm\s+(\d+)\s*$`)
-		if cmdDone.Match([]byte(inp)) {
-			done <- true
-		}
-		bpmMatch := cmdBpm.FindStringSubmatch(inp)
-		if bpmMatch != nil {
-			bpm, _ := strconv.Atoi(bpmMatch[1])
-			go sendMidiClock(bpm)
-		}
-	}
-}
-
-func main() {
-	mainDone := make(chan bool, 1)
-
-	portmidi.Initialize()
-	defer portmidi.Terminate()
-	go programChangeForward()
-	// sendMidiClock(90)
-	go commandLoop(mainDone)
-	<-mainDone
 }
