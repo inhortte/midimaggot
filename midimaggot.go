@@ -70,6 +70,13 @@ func sendMidiClock(bpm int) {
 	out.Close()
 }
 
+func sendProgramChange(channel, program int) {
+	out := getpisoundOutStream()
+	var eType int64 = 0xc0 | int64(channel-1)
+	out.WriteShort(eType, int64(program), 0)
+	out.Close()
+}
+
 func empressPhaserIgnoreClock(args ...int) {
 	channel := empressPhaserChannel
 	if len(args) > 0 {
