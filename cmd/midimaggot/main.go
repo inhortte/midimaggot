@@ -10,7 +10,7 @@ func main() {
 
 	portmidi.Initialize()
 	defer portmidi.Terminate()
-	// go programChangeForward()
+	go midimaggot.ProgramChangeForward()
 	go midimaggot.CommandLoop(mainDone)
 	<-mainDone
 }

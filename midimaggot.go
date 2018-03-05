@@ -96,12 +96,21 @@ func empressPhaserListenClock(args ...int) {
 	out.WriteShort(controlChange, controlNumber, controlValue)
 }
 
-func programChangeForward() {
+func ProgramChangeForward() {
+	fmt.Println("starting ProgramChangeForward")
 	in := getpisoundInStream()
 	defer in.Close()
 	ch := in.Listen()
 	for {
 		event := <-ch
-		fmt.Println("received -> ", event)
+		eType := event.Status >> 4
+		channel := event.Status % 16
+		program := event.Data1
+		if eType == 12 {
+			fmt.Printf("Forwarding Program Change to program %v from channel %v to channel 8, because the Brothers and Gravitas are listening on EIGHT (that's 7 for me), vole!", program, channel)
+		}
+		out := getpisoundOutStream()
+		out.WriteShort(0xc7, program, 0)
+		out.Close()
 	}
 }
