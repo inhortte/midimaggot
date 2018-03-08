@@ -63,10 +63,21 @@ func sendMidiClock(bpm int) {
 	sleepTime := (60.0 / float64(bpm)) / 24.0
 	fmt.Printf("bpm: %v, sleep time: %v\n", bpm, sleepTime)
 	out := getpisoundOutStream()
-	for i := 0; i < 24; i++ {
-		out.WriteShort(0xf8, 0, 100)
-		time.Sleep(time.Duration(sleepTime * 1000000000))
-	}
+	ticker := time.NewTicker(time.Duration(sleepTime * 1000000000))
+	timeIsUp := make(chan bool, 1)
+	go func() {
+		i := 0
+		for range ticker.C {
+			if i < 24 {
+				out.WriteShort(0xf8, 0, 100)
+				i++
+			} else {
+				ticker.Stop()
+				timeIsUp <- true
+			}
+		}
+	}()
+	<-timeIsUp
 	out.Close()
 }
 
@@ -77,30 +88,57 @@ func sendProgramChange(channel, program int) {
 	out.Close()
 }
 
-func empressPhaserIgnoreClock(args ...int) {
+func empressPhaserIgnoreClock(c int) {
+	fmt.Println("Phaser ignoring clock")
 	channel := empressPhaserChannel
-	if len(args) > 0 {
-		channel = int64(args[0])
+	if c > 0 {
+		channel = int64(c)
 	}
 	out := getpisoundOutStream()
-	controlChange := int64(0xb0 & (channel - 1))
+	controlChange := int64(0xb0 | (channel - 1))
 	controlNumber := int64(51)
 	controlValue := int64(0)
 	out.WriteShort(controlChange, controlNumber, controlValue)
 	out.Close()
 }
 
-func empressPhaserListenClock(args ...int) {
+func empressPhaserListenClock(c int) {
 	channel := empressPhaserChannel
-	if len(args) > 0 {
-		channel = int64(args[0])
+	if c > 0 {
+		channel = int64(c)
 	}
 	out := getpisoundOutStream()
 	defer out.Close()
-	controlChange := int64(0xb0 & (channel - 1))
+	controlChange := int64(0xb0 | (channel - 1))
 	controlNumber := int64(51)
 	controlValue := int64(127)
 	out.WriteShort(controlChange, controlNumber, controlValue)
+}
+
+func empressPhaserBounceBetweenRates(bounceDone <-chan bool, c, bpm, low, high int) {
+	empressPhaserIgnoreClock(c)
+	out := getpisoundOutStream()
+	// knob mode
+	out.WriteShort(int64(0xb0|(c-1)), 23, 2)
+	ticker := time.NewTicker(time.Duration(60.0 / float64(bpm) / float64(high-low) * 1000000000))
+	go func() {
+		rate := low - 1
+		direction := -1
+		for range ticker.C {
+			select {
+			case msg := <-bounceDone:
+				if msg {
+					break
+				}
+			default:
+				if rate < low || rate > high {
+					direction *= -1
+				}
+				rate += direction
+				out.WriteShort(int64(0xb0|(c-1)), 20, rate)
+			}
+		}
+	}()
 }
 
 func ProgramChangeForward() {

@@ -9,7 +9,9 @@ import (
 var cmdDone = Done{`^exit\s*$`}
 var cmdBpm = Bpm{`^bpm\s+(\d+)\s*$`}
 var cmdProgramChange = ProgramChange{`^pc\s+(\d+)\s+(\d+)\s*$`}
-var commands = []directive{&cmdDone, &cmdBpm, &cmdProgramChange}
+var cmdPhaserIgnoreClock = PhaserIgnoreClock{`^pic\s+(\d+)\s*$`}
+var cmdPhaserListenClock = PhaserListenClock{`^plc\s+(\d+)\s*$`}
+var commands = []directive{&cmdDone, &cmdBpm, &cmdProgramChange, &cmdPhaserIgnoreClock, &cmdPhaserListenClock}
 
 func CommandLoop(done chan bool) {
 	sin := bufio.NewReader(os.Stdin)

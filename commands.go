@@ -70,3 +70,37 @@ func (pc *ProgramChange) Thurk(inp string, done chan<- bool, fRun chan<- bool) {
 	}
 	fRun <- true
 }
+
+type PhaserIgnoreClock struct {
+	re string
+}
+
+func (pic *PhaserIgnoreClock) Thurk(inp string, done chan<- bool, fRun chan<- bool) {
+	parsed := parse(pic.re, inp)
+	if parsed != nil {
+		channel, err := strconv.Atoi(parsed[0])
+		if err != nil {
+			fmt.Println("Input problem, honey: ", err)
+		} else {
+			go empressPhaserIgnoreClock(channel)
+		}
+	}
+	fRun <- true
+}
+
+type PhaserListenClock struct {
+	re string
+}
+
+func (plc *PhaserListenClock) Thurk(inp string, done chan<- bool, fRun chan<- bool) {
+	parsed := parse(plc.re, inp)
+	if parsed != nil {
+		channel, err := strconv.Atoi(parsed[0])
+		if err != nil {
+			fmt.Println("Input problem, honey: ", err)
+		} else {
+			go empressPhaserListenClock(channel)
+		}
+	}
+	fRun <- true
+}
