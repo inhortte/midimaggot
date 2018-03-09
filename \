@@ -28,7 +28,7 @@ func findDoneThurk(dts []doneThurk, id string) *doneThurk {
 func removeDoneThurk(dts *[]doneThurk, id string) *[]doneThurk {
 	for idx, dt := range *dts {
 		if dt.id == id {
-			dts := append((*dts)[0:idx], (*dts)[idx+1:]...)
+			dts = append((*dts)[0:idx], (*dts)[idx+1:]...)
 			return &dts
 		}
 	}
@@ -52,7 +52,7 @@ func CommandLoop(done chan bool) {
 		fmt.Print("~> ")
 		inp, _ := sin.ReadString('\n')
 		for _, d := range commands {
-			dt := d.Thurk(inp, done, &doneThurks)
+			dt := d.Thurk(inp, done, doneThurks)
 			doneThurks = append(doneThurks, dt)
 		}
 	}

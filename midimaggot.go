@@ -115,7 +115,7 @@ func empressPhaserListenClock(c int) {
 	out.WriteShort(controlChange, controlNumber, controlValue)
 }
 
-func empressPhaserBounceBetweenRates(bounceDone <-chan bool, c, bpm, low, high int) {
+func empressPhaserBounceRate(bounceDone *doneThurk, c, bpm, low, high int) {
 	empressPhaserIgnoreClock(c)
 	out := getpisoundOutStream()
 	// knob mode
@@ -126,8 +126,10 @@ func empressPhaserBounceBetweenRates(bounceDone <-chan bool, c, bpm, low, high i
 		direction := -1
 		for range ticker.C {
 			select {
-			case msg := <-bounceDone:
+			case msg := <-bounceDone.done:
 				if msg {
+					out.Close()
+					empressPhaserListenClock(c)
 					break
 				}
 			default:
@@ -135,7 +137,7 @@ func empressPhaserBounceBetweenRates(bounceDone <-chan bool, c, bpm, low, high i
 					direction *= -1
 				}
 				rate += direction
-				out.WriteShort(int64(0xb0|(c-1)), 20, rate)
+				out.WriteShort(int64(0xb0|(c-1)), 20, int64(rate))
 			}
 		}
 	}()
