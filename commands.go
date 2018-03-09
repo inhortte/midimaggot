@@ -7,7 +7,7 @@ import (
 )
 
 type directive interface {
-	Thurk(string, chan<- bool, *[]doneThurk) doneThurk
+	Thurk(string, chan<- bool, doneThurks) doneThurks
 }
 
 func parse(reString string, inp string) []string {
@@ -28,19 +28,19 @@ type Done struct {
 	re string
 }
 
-func (d *Done) Thurk(inp string, done chan<- bool, dts *[]doneThurk) doneThurk {
+func (d *Done) Thurk(inp string, done chan<- bool, dts doneThurks) doneThurks {
 	parsed := parse(d.re, inp)
 	if parsed != nil {
 		done <- true
 	}
-	return makeDoneThurk("done")
+	return dts
 }
 
 type Bpm struct {
 	re string
 }
 
-func (b *Bpm) Thurk(inp string, done chan<- bool, dts *[]doneThurk) doneThurk {
+func (b *Bpm) Thurk(inp string, done chan<- bool, dts doneThurks) doneThurks {
 	parsed := parse(b.re, inp)
 	if parsed != nil {
 		bpm, err := strconv.Atoi(parsed[0])
@@ -50,14 +50,14 @@ func (b *Bpm) Thurk(inp string, done chan<- bool, dts *[]doneThurk) doneThurk {
 			go sendMidiClock(bpm)
 		}
 	}
-	return makeDoneThurk("bpm")
+	return dts
 }
 
 type ProgramChange struct {
 	re string
 }
 
-func (pc *ProgramChange) Thurk(inp string, done chan<- bool, dts *[]doneThurk) doneThurk {
+func (pc *ProgramChange) Thurk(inp string, done chan<- bool, dts doneThurks) doneThurks {
 	parsed := parse(pc.re, inp)
 	if parsed != nil {
 		channel, err := strconv.Atoi(parsed[0])
@@ -68,14 +68,14 @@ func (pc *ProgramChange) Thurk(inp string, done chan<- bool, dts *[]doneThurk) d
 			go sendProgramChange(channel, program)
 		}
 	}
-	return makeDoneThurk("program-change")
+	return dts
 }
 
 type PhaserIgnoreClock struct {
 	re string
 }
 
-func (pic *PhaserIgnoreClock) Thurk(inp string, done chan<- bool, dts *[]doneThurk) doneThurk {
+func (pic *PhaserIgnoreClock) Thurk(inp string, done chan<- bool, dts doneThurks) doneThurks {
 	parsed := parse(pic.re, inp)
 	if parsed != nil {
 		channel, err := strconv.Atoi(parsed[0])
@@ -85,14 +85,14 @@ func (pic *PhaserIgnoreClock) Thurk(inp string, done chan<- bool, dts *[]doneThu
 			go empressPhaserIgnoreClock(channel)
 		}
 	}
-	return makeDoneThurk("phaser-ignore-clock")
+	return dts
 }
 
 type PhaserListenClock struct {
 	re string
 }
 
-func (plc *PhaserListenClock) Thurk(inp string, done chan<- bool, dts *[]doneThurk) doneThurk {
+func (plc *PhaserListenClock) Thurk(inp string, done chan<- bool, dts doneThurks) doneThurks {
 	parsed := parse(plc.re, inp)
 	if parsed != nil {
 		channel, err := strconv.Atoi(parsed[0])
@@ -102,15 +102,15 @@ func (plc *PhaserListenClock) Thurk(inp string, done chan<- bool, dts *[]doneThu
 			go empressPhaserListenClock(channel)
 		}
 	}
-	return makeDoneThurk("phaser-listen-clock")
+	return dts
 }
 
 type PhaserBounceRate struct {
 	re string
 }
 
-func (pbr *PhaserBounceRate) Thurk(inp string, done chan<- bool, dts *[]doneThurk) doneThurk {
-	dt := makeDoneThurk("phaser-bounce-rate")
+func (pbr *PhaserBounceRate) Thurk(inp string, done chan<- bool, dts doneThurks) doneThurks {
+	// dts = makeDoneThurk(dts, "phaser-bounce-rate")
 	parsed := parse(pbr.re, inp)
 	if parsed != nil {
 		channel, err1 := strconv.Atoi(parsed[0])
@@ -120,22 +120,26 @@ func (pbr *PhaserBounceRate) Thurk(inp string, done chan<- bool, dts *[]doneThur
 		if err1 != nil || err2 != nil || err3 != nil || err4 != nil {
 			fmt.Println("Input problem: pbr channel bpm low high ... ")
 		} else {
-			go empressPhaserBounceRate(&dt, channel, bpm, low, high)
+			dts["phaser-bounce-rate"] = make(chan bool, 1)
+			go empressPhaserBounceRate(dts["phaser-bounce-rate"], channel, bpm, low, high)
 		}
 	}
-	return dt
+	return dts
 }
 
 type PhaserStopBounce struct {
 	re string
 }
 
-func (psb *PhaserStopBounce) Thurk(inp string, done chan<- bool, dts *[]doneThurk) doneThurk {
+func (psb *PhaserStopBounce) Thurk(inp string, done chan<- bool, dts doneThurks) doneThurks {
 	parsed := parse(psb.re, inp)
 	if parsed != nil {
-		dt := findDoneThurk(*dts, "phaser-bounce-rate")
-		dt.done <- true
-		dts = removeDoneThurk(dts, "phaser-bounce-rate")
+		fmt.Println("phaser stop bounce....")
+		// c := findDoneThurk(dts, "phaser-bounce-rate")
+		//c <- true
+		dts["phaser-bounce-rate"] <- true
+		// dts = removeDoneThurk(dts, "phaser-bounce-rate")
+		delete(dts, "phaser-bounce-rate")
 	}
-	return makeDoneThurk("phaser-stop-bounnce")
+	return dts
 }

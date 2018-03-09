@@ -6,32 +6,19 @@ import (
 	"os"
 )
 
-type doneThurk struct {
-	id   string
-	done chan bool
+type doneThurks map[string](chan bool)
+
+func makeDoneThurk(dts doneThurks, id string) doneThurks {
+	dts[id] = make(chan bool, 1)
+	return dts
 }
 
-func makeDoneThurk(id string) doneThurk {
-	dt := doneThurk{id, make(chan bool, 1)}
-	return dt
+func findDoneThurk(dts doneThurks, id string) chan bool {
+	return dts[id]
 }
 
-func findDoneThurk(dts []doneThurk, id string) *doneThurk {
-	for _, dt := range dts {
-		if dt.id == id {
-			return &dt
-		}
-	}
-	return nil
-}
-
-func removeDoneThurk(dts *[]doneThurk, id string) *[]doneThurk {
-	for idx, dt := range *dts {
-		if dt.id == id {
-			dts := append((*dts)[0:idx], (*dts)[idx+1:]...)
-			return &dts
-		}
-	}
+func removeDoneThurk(dts doneThurks, id string) doneThurks {
+	delete(dts, id)
 	return dts
 }
 
@@ -46,14 +33,13 @@ var commands = []directive{&cmdDone, &cmdBpm, &cmdProgramChange, &cmdPhaserIgnor
 	&cmdPhaserListenClock, &cmdPhaserBounceRate, &cmdPhaserStopBounce}
 
 func CommandLoop(done chan bool) {
-	doneThurks := make([]doneThurk, 0, 128)
+	doneThurks := make(doneThurks, 128)
 	sin := bufio.NewReader(os.Stdin)
 	for {
 		fmt.Print("~> ")
 		inp, _ := sin.ReadString('\n')
 		for _, d := range commands {
-			dt := d.Thurk(inp, done, &doneThurks)
-			doneThurks = append(doneThurks, dt)
+			doneThurks = d.Thurk(inp, done, doneThurks)
 		}
 	}
 }
