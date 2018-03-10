@@ -143,3 +143,37 @@ func (psb *PhaserStopBounce) Thurk(inp string, done chan<- bool, dts doneThurks)
 	}
 	return dts
 }
+
+type PhaserRandomRate struct {
+	re string
+}
+
+func (prr *PhaserRandomRate) Thurk(inp string, done chan<- bool, dts doneThurks) doneThurks {
+	parsed := parse(prr.re, inp)
+	if parsed != nil {
+		channel, err1 := strconv.Atoi(parsed[0])
+		bpm, err2 := strconv.Atoi(parsed[1])
+		division, err3 := strconv.ParseFloat(parsed[2], 64)
+		if err1 != nil || err2 != nil || err3 != nil {
+			fmt.Println("Input problem prr channel bpm division ... ")
+		} else {
+			dts["phaser-random-rate"] = make(chan bool, 1)
+			go empressPhaserRandomRate(dts["phaser-random-rate"], channel, bpm, division)
+		}
+	}
+	return dts
+}
+
+type PhaserStopRandomRate struct {
+	re string
+}
+
+func (psrr *PhaserStopRandomRate) Thurk(inp string, done chan<- bool, dts doneThurks) doneThurks {
+	parsed := parse(psrr.re, inp)
+	if parsed != nil {
+		fmt.Println("phaser stop random rate ...")
+		dts["phaser-random-rate"] <- true
+		delete(dts, "phaser-random-rate")
+	}
+	return dts
+}

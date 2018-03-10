@@ -29,8 +29,11 @@ var cmdPhaserIgnoreClock = PhaserIgnoreClock{`^pic\s+(\d+)\s*$`}
 var cmdPhaserListenClock = PhaserListenClock{`^plc\s+(\d+)\s*$`}
 var cmdPhaserBounceRate = PhaserBounceRate{`^pbr\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*$`}
 var cmdPhaserStopBounce = PhaserStopBounce{`^psb\s*$`}
+var cmdPhaserRandomRate = PhaserRandomRate{`^prr\s+(\d+)\s+(\d+)\s+(\d+)\s*$`}
+var cmdPhaserStopRandomRate = PhaserStopRandomRate{`psrr\s*$`}
 var commands = []directive{&cmdDone, &cmdBpm, &cmdProgramChange, &cmdPhaserIgnoreClock,
-	&cmdPhaserListenClock, &cmdPhaserBounceRate, &cmdPhaserStopBounce}
+	&cmdPhaserListenClock, &cmdPhaserBounceRate, &cmdPhaserStopBounce,
+	&cmdPhaserRandomRate, &cmdPhaserStopRandomRate}
 
 func CommandLoop(done chan bool) {
 	doneThurks := make(doneThurks, 128)

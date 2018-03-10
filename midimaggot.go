@@ -3,6 +3,7 @@ package midimaggot
 import (
 	"fmt"
 	"github.com/rakyll/portmidi"
+	"math/rand"
 	"time"
 )
 
@@ -11,6 +12,12 @@ type Control byte
 const empressPhaserChannel int64 = 7
 const brothersChannel int64 = 8
 const gravitasChannel int64 = 8
+const (
+	phaserNoMode int64 = iota
+	phaserTapMode
+	phaserKnobMode
+	phaserAutoMode
+)
 const (
 	TimingClock   Control = 0xf8
 	ControlChange Control = 0xb0
@@ -115,11 +122,16 @@ func empressPhaserListenClock(c int) {
 	out.WriteShort(controlChange, controlNumber, controlValue)
 }
 
+func empressPhaserMode(c, mode int64) {
+	out := getpisoundOutStream()
+	out.WriteShort(int64(0xb0|(c-1)), 23, mode)
+	out.Close()
+}
+
 func empressPhaserBounceRate(bounceDone <-chan bool, c, bpm, low, high int) {
 	empressPhaserIgnoreClock(c)
+	empressPhaserMode(int64(c), phaserKnobMode)
 	out := getpisoundOutStream()
-	// knob mode
-	out.WriteShort(int64(0xb0|(c-1)), 23, 2)
 	ticker := time.NewTicker(time.Duration(60.0 / float64(bpm) / float64(high-low) * 1000000000))
 	go func() {
 		rate := low - 1
@@ -140,6 +152,31 @@ func empressPhaserBounceRate(bounceDone <-chan bool, c, bpm, low, high int) {
 					direction *= -1
 				}
 				rate += direction
+				out.WriteShort(int64(0xb0|(c-1)), 20, int64(rate))
+			}
+		}
+	}()
+}
+
+func empressPhaserRandomRate(rrDone <-chan bool, c, bpm int, division float64) {
+	empressPhaserIgnoreClock(c)
+	empressPhaserMode(int64(c), phaserKnobMode)
+	out := getpisoundOutStream()
+	ticker := time.NewTicker(time.Duration(60.0 / float64(bpm) / division * 1000000000))
+	go func() {
+	Lunge:
+		for range ticker.C {
+			select {
+			case msg := <-rrDone:
+				if msg {
+					fmt.Println("stopping phaser random rate")
+					out.Close()
+					empressPhaserListenClock(c)
+					ticker.Stop()
+					break Lunge
+				}
+			default:
+				rate := rand.Intn(128)
 				out.WriteShort(int64(0xb0|(c-1)), 20, int64(rate))
 			}
 		}
