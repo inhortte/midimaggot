@@ -17,7 +17,7 @@ func parse(reString string, inp string) []string {
 	}
 	reMatch := re.FindStringSubmatch(inp)
 	if reMatch != nil {
-		fmt.Println("parsed: ", reMatch)
+		// fmt.Println("parsed: ", reMatch)
 		return reMatch[1:]
 	} else {
 		return nil
@@ -32,6 +32,33 @@ func (d *Done) Thurk(inp string, done chan<- bool, dts doneThurks) doneThurks {
 	parsed := parse(d.re, inp)
 	if parsed != nil {
 		done <- true
+	}
+	return dts
+}
+
+type Usage struct {
+	re string
+}
+
+func (u *Usage) Thurk(inp string, done chan<- bool, dts doneThurks) doneThurks {
+	usage := map[string]string{
+		"usage": "Display a summary of the various maggot types: usage | help",
+		"exit":  "Extract yourself from the maggot: exit",
+		"bpm":   "Send midi clock: bpm <beats-per-minute>",
+		"pc":    "Program change: pc <channel> <program>",
+		"pic":   "Empress phaser ignore clock: pic",
+		"plc":   "Empress phaser listen clock: plc",
+		"pbr":   "Empress phaser bounce rate: pbr <channel> <beats-per-minute> <low> <high>",
+		"psd":   "Empress phaser stop bounce rate: psb",
+		"prr":   "Empress phaser random rate: prr <channel> <beats-per-minute> <division>",
+		"psrr":  "Empress phaser stop random rate: psrr",
+	}
+	parsed := parse(u.re, inp)
+	if parsed != nil {
+		fmt.Println()
+		for k, v := range usage {
+			fmt.Printf("%s -- %s\n", k, v)
+		}
 	}
 	return dts
 }

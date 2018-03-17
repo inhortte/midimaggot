@@ -22,6 +22,7 @@ func removeDoneThurk(dts doneThurks, id string) doneThurks {
 	return dts
 }
 
+var cmdUsage = Usage{`^(usage|help)\s*$`}
 var cmdDone = Done{`^exit\s*$`}
 var cmdBpm = Bpm{`^bpm\s+(\d+)\s*$`}
 var cmdProgramChange = ProgramChange{`^pc\s+(\d+)\s+(\d+)\s*$`}
@@ -31,7 +32,7 @@ var cmdPhaserBounceRate = PhaserBounceRate{`^pbr\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)
 var cmdPhaserStopBounce = PhaserStopBounce{`^psb\s*$`}
 var cmdPhaserRandomRate = PhaserRandomRate{`^prr\s+(\d+)\s+(\d+)\s+(\d+)\s*$`}
 var cmdPhaserStopRandomRate = PhaserStopRandomRate{`psrr\s*$`}
-var commands = []directive{&cmdDone, &cmdBpm, &cmdProgramChange, &cmdPhaserIgnoreClock,
+var commands = []directive{&cmdUsage, &cmdDone, &cmdBpm, &cmdProgramChange, &cmdPhaserIgnoreClock,
 	&cmdPhaserListenClock, &cmdPhaserBounceRate, &cmdPhaserStopBounce,
 	&cmdPhaserRandomRate, &cmdPhaserStopRandomRate}
 
