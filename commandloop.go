@@ -31,19 +31,31 @@ var cmdPhaserListenClock = PhaserListenClock{`^plc\s+(\d+)\s*$`}
 var cmdPhaserBounceRate = PhaserBounceRate{`^pbr\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*$`}
 var cmdPhaserStopBounce = PhaserStopBounce{`^psb\s*$`}
 var cmdPhaserRandomRate = PhaserRandomRate{`^prr\s+(\d+)\s+(\d+)\s+(\d+)\s*$`}
-var cmdPhaserStopRandomRate = PhaserStopRandomRate{`psrr\s*$`}
+var cmdPhaserStopRandomRate = PhaserStopRandomRate{`^psrr\s*$`}
+var cmdProgram = Program{`^p\s+(\d+)\s+"(.+)"\s*$`}
 var commands = []directive{&cmdUsage, &cmdDone, &cmdBpm, &cmdProgramChange, &cmdPhaserIgnoreClock,
 	&cmdPhaserListenClock, &cmdPhaserBounceRate, &cmdPhaserStopBounce,
-	&cmdPhaserRandomRate, &cmdPhaserStopRandomRate}
+	&cmdPhaserRandomRate, &cmdPhaserStopRandomRate, &cmdProgram}
+
+func processCommand(inp string, done chan<- bool, dts doneThurks) doneThurks {
+	for _, d := range commands {
+		dts = d.Thurk(inp, done, dts)
+	}
+	return dts
+}
 
 func CommandLoop(done chan bool) {
 	doneThurks := make(doneThurks, 128)
+	go ProgramChangeForward(done, doneThurks)
 	sin := bufio.NewReader(os.Stdin)
 	for {
 		fmt.Print("~> ")
 		inp, _ := sin.ReadString('\n')
-		for _, d := range commands {
-			doneThurks = d.Thurk(inp, done, doneThurks)
-		}
+		doneThurks = processCommand(inp, done, doneThurks)
+		/*
+			for _, d := range commands {
+				doneThurks = d.Thurk(inp, done, doneThurks)
+			}
+		*/
 	}
 }

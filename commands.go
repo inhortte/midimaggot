@@ -52,6 +52,7 @@ func (u *Usage) Thurk(inp string, done chan<- bool, dts doneThurks) doneThurks {
 		"psd":   "Empress phaser stop bounce rate: psb",
 		"prr":   "Empress phaser random rate: prr <channel> <beats-per-minute> <division>",
 		"psrr":  "Empress phaser stop random rate: psrr",
+		"p":     "Save a program: p <program-number> <command>",
 	}
 	parsed := parse(u.re, inp)
 	if parsed != nil {
@@ -201,6 +202,24 @@ func (psrr *PhaserStopRandomRate) Thurk(inp string, done chan<- bool, dts doneTh
 		fmt.Println("phaser stop random rate ...")
 		dts["phaser-random-rate"] <- true
 		delete(dts, "phaser-random-rate")
+	}
+	return dts
+}
+
+type Program struct {
+	re string
+}
+
+func (p *Program) Thurk(inp string, done chan<- bool, dts doneThurks) doneThurks {
+	parsed := parse(p.re, inp)
+	if parsed != nil {
+		program, err := strconv.Atoi(parsed[0])
+		command := parsed[1]
+		if err != nil || len(command) == 0 {
+			fmt.Println("You fucked it up")
+		} else {
+			addProgramNumber(program, command)
+		}
 	}
 	return dts
 }

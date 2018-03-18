@@ -183,7 +183,7 @@ func empressPhaserRandomRate(rrDone <-chan bool, c, bpm int, division float64) {
 	}()
 }
 
-func ProgramChangeForward() {
+func ProgramChangeForward(done chan<- bool, dts doneThurks) {
 	fmt.Println("starting ProgramChangeForward")
 	in := getpisoundInStream()
 	defer in.Close()
@@ -194,10 +194,16 @@ func ProgramChangeForward() {
 		channel := event.Status % 16
 		program := event.Data1
 		if eType == 12 {
-			fmt.Printf("Forwarding Program Change to program %v from channel %v to channel 8, because the Brothers and Gravitas are listening on EIGHT (that's 7 for me), vole!", program, channel)
+			command := retrieveCommandViaProgramNumber(program)
+			if len(command) > 0 {
+				fmt.Printf("The command \"%s\" has been found\n", command)
+				dts = processCommand(command, done, dts)
+			} else {
+				fmt.Printf("\nForwarding Program Change to program %v from channel %v to channel 8, because the Brothers and Gravitas are listening on EIGHT (that's 7 for me), vole!\n", program, channel)
+				out := getpisoundOutStream()
+				out.WriteShort(0xc7, program, 0)
+				out.Close()
+			}
 		}
-		out := getpisoundOutStream()
-		out.WriteShort(0xc7, program, 0)
-		out.Close()
 	}
 }
